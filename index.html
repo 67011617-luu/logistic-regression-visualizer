@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Logistic Regression Visualizer</title>
+<style>
+  /* =========================
+     GLOBAL STYLES
+     ========================= */
+  :root {
+    --bg: #080b14;
+    --bg-alt: #0d1220;
+    --panel: #121729;
+    --panel-strong: #0d1220;
+    --panel-soft: #1a2035;
+    --border: #242c46;
+    --border-soft: #1d2438;
+    --text: #eef1fa;
+    --muted: #8b93b0;
+    --muted-dim: #5f6785;
+    --purple: #a78bfa;
+    --purple-strong: #8b5cf6;
+    --blue: #4fa3f0;
+    --orange: #f7943c;
+    --green: #34d399;
+    --red: #f87171;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --scrollbar-thumb: #2c3554;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; }
+  * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+
+  /* Layout */
+  .page { max-width: 1500px; width: 100%; margin: 0 auto; padding: 14px 18px; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; gap: 12px; }
+
+  /* Header */
+  header { flex: 0 0 auto; }
+  .header-card {
+    background: linear-gradient(180deg, var(--panel-strong), var(--bg-alt));
+    border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px;
+    box-shadow: 0 10px 18px var(--shadow);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; flex-wrap: wrap;
+  }
+  .header-text h1 { margin: 0; font-size: clamp(1.35rem, 2.1vw, 1.95rem); font-weight: 700; letter-spacing: 0.01em; }
+  .header-text h1 .accent { background: linear-gradient(90deg, var(--purple), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .header-text p.desc { margin: 8px 0 0; font-size: 0.92rem; color: var(--muted); max-width: 620px; line-height: 1.5; }
+
+  .how-it-works {
+    flex: 0 0 auto; width: 300px; max-width: 100%;
+    background: var(--panel-soft); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px 16px;
+  }
+  .how-it-works h3 { margin: 0 0 8px; font-size: 0.9rem; color: var(--purple); }
+  .how-it-works ol { margin: 0; padding-left: 18px; font-size: 0.78rem; color: var(--muted); line-height: 1.65; }
+  .how-it-works li b { color: var(--text); }
+
+  /* Main app layout */
+  .app-layout { flex: 1 1 auto; min-height: 420px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; }
+  .left-column, .right-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; }
+
+  /* Panels */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 18px var(--shadow); padding: 14px 16px 16px; flex: 0 0 auto; }
+  .panel-header { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .panel-sub { font-size: 0.76rem; color: var(--muted-dim); text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+  /* Legend */
+  .legend { display: flex; gap: 18px; font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+
+  /* Canvas */
+  .canvas-wrap { position: relative; }
+  canvas { display: block; width: 100%; border-radius: 12px; background: #0a0e1c; }
+  #dataCanvas { height: 400px; border: 1px solid var(--border); cursor: crosshair; touch-action: none; }
+  #lossCanvas { height: 190px; border: 1px solid var(--border); }
+  .boundary-hint {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(12,16,28,0.9); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; font-size: 0.76rem; color: var(--muted); pointer-events: none;
+  }
+  .canvas-tooltip {
+    position: absolute; display: none; pointer-events: none; background: rgba(10,14,26,0.96); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; font-size: 0.74rem; line-height: 1.4; color: var(--text); white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.4); z-index: 5;
+  }
+
+  /* Controls */
+  .control-block { margin-bottom: 16px; }
+  .control-block:last-child { margin-bottom: 0; }
+  .control-label { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; display: block; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  select {
+    background: var(--panel-strong); border: 1px solid var(--border); color: var(--text); border-radius: 8px;
+    padding: 8px 10px; font-size: 0.84rem; flex: 1 1 auto;
+  }
+  select:focus { outline: 2px solid var(--purple); outline-offset: 1px; }
+
+  button {
+    appearance: none; border: 1px solid var(--border); background: linear-gradient(180deg, #202a45, #171e35); color: var(--text);
+    border-radius: 10px; padding: 9px 13px; font-weight: 600; font-size: 0.82rem; cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease, opacity .2s ease;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); border-color: #5a6d8e; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  button.mode-btn.active-class0 { border-color: var(--blue); box-shadow: 0 0 0 1px rgba(79,163,240,0.35) inset; color: #cfe6ff; }
+  button.mode-btn.active-class1 { border-color: var(--orange); box-shadow: 0 0 0 1px rgba(247,148,60,0.35) inset; color: #ffe2c6; }
+  button.mode-btn.active-delete { border-color: var(--red); box-shadow: 0 0 0 1px rgba(248,113,113,0.35) inset; color: #ffd7d7; }
+  button.primary { background: linear-gradient(180deg, #2a3a63, #223052); border-color: #3d5a8f; }
+  button.success { background: linear-gradient(180deg, #1f4d3d, #17392e); border-color: #2c6b52; }
+  button.training { background: linear-gradient(180deg, #4c2f78, #3a2360); border-color: var(--purple-strong); color: #ecdfff; }
+  button.ghost { background: transparent; }
+
+  .hp-field { margin-bottom: 14px; }
+  .hp-field:last-child { margin-bottom: 0; }
+  .hp-field .hp-top { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px; }
+  .hp-field .hp-top .name { color: var(--muted); }
+  .hp-field .hp-top .val { color: var(--text); font-weight: 700; font-family: Consolas, monospace; }
+  .hp-field .hp-purpose { font-size: 0.7rem; color: var(--muted-dim); margin-top: 4px; }
+  input[type="range"] { width: 100%; accent-color: var(--purple); }
+
+  .status-box {
+    min-height: 18px; margin-top: 12px; padding: 9px 12px; border-radius: 8px;
+    background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2); color: var(--text); font-size: 0.82rem;
+  }
+  .status-box.error { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); color: #ffd9d9; }
+  .status-box.success { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.28); color: #d1f7e8; }
+
+  .counts { display: flex; gap: 18px; font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+  .counts span { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Model state */
+  .stat-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat-tile { background: var(--panel-strong); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 12px; }
+  .stat-tile .k { font-size: 0.68rem; color: var(--muted-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-tile .v { font-size: 1.2rem; font-weight: 700; margin-top: 3px; font-family: Consolas, monospace; }
+
+  .param-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .param-row { display: flex; justify-content: space-between; align-items: center; background: var(--panel-strong); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 12px; font-size: 0.86rem; }
+  .param-row .name { color: var(--muted); }
+  .param-row .name small { display: block; color: var(--muted-dim); font-size: 0.68rem; margin-top: 1px; }
+  .param-row .value { font-family: Consolas, monospace; font-weight: 700; }
+
+  .divider { border: none; border-top: 1px solid var(--border-soft); margin: 16px 0; }
+
+  .current-pred-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 8px; }
+  .cp-tile { background: var(--panel-strong); border: 1px solid var(--border-soft); border-radius: 8px; padding: 8px 10px; }
+  .cp-tile .k { font-size: 0.68rem; color: var(--muted-dim); text-transform: uppercase; }
+  .cp-tile .v { font-size: 1rem; font-weight: 700; font-family: Consolas, monospace; margin-top: 2px; }
+  .cp-tile.pred-1 .v { color: var(--orange); }
+  .cp-tile.pred-0 .v { color: var(--blue); }
+  .cp-hint { font-size: 0.72rem; color: var(--muted-dim); margin-top: 6px; }
+
+  .sigmoid-eq { text-align: center; font-size: 1.05rem; font-family: Consolas, monospace; background: var(--panel-strong); border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+  table.sig-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 4px; }
+  table.sig-table th, table.sig-table td { padding: 5px 6px; text-align: center; font-family: Consolas, monospace; border-bottom: 1px solid var(--border-soft); }
+  table.sig-table th { color: var(--muted); font-weight: 600; }
+
+  .classify-rule { display: flex; flex-direction: column; gap: 6px; font-size: 0.86rem; font-family: Consolas, monospace; }
+  .classify-rule .r1 { color: var(--orange); }
+  .classify-rule .r0 { color: var(--blue); }
+
+  .term-tip { font-size: 0.7rem; color: var(--muted-dim); border-top: 1px dashed var(--border-soft); padding-top: 4px; margin-top: 2px; }
+
+  .legend-inline-help { font-size: 0.72rem; color: var(--muted-dim); }
+
+  footer { flex: 0 0 auto; padding: 8px 20px; text-align: center; font-size: 0.76rem; color: var(--muted-dim); border-top: 1px solid var(--border-soft); background: var(--bg-alt); }
+  footer strong { color: var(--muted); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .app-layout { grid-template-columns: 1fr; }
+    .left-column, .right-column { overflow-y: visible; }
+    .how-it-works { width: 100%; }
+    .stat-row, .current-pred-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-card">
+      <div class="header-text">
+        <h1>Logistic Regression <span class="accent">Visualizer</span></h1>
+        <p class="desc">Logistic Regression is a classification algorithm that predicts the probability of an input belonging to a class. Adjust the data and watch the model learn a decision boundary through gradient descent.</p>
+      </div>
+      <div class="how-it-works">
+        <h3>💡 How it works?</h3>
+        <ol>
+          <li>Calculate <b>z = w₁x₁ + w₂x₂ + b</b></li>
+          <li>Convert z to probability using <b>sigmoid</b></li>
+          <li>Compare prediction with actual class</li>
+          <li>Calculate <b>loss</b></li>
+          <li>Update weights using <b>gradient descent</b></li>
+          <li>Repeat until convergence</li>
+        </ol>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP -->
+  <main class="app-layout">
+
+    <!-- LEFT COLUMN -->
+    <section class="left-column">
+
+      <section class="panel data-canvas-panel">
+        <div class="panel-header">Data Canvas <span class="panel-sub">click to add/delete a point depending on the selected mode below</span></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--blue)"></span>● Class 0</span>
+          <span><span class="dot" style="background:var(--orange)"></span>● Class 1</span>
+          <span class="legend-inline-help">Selected point for "Current Prediction" is highlighted with a white ring.</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="dataCanvas" aria-label="Interactive 2D data canvas showing Class 0 and Class 1 points and the logistic regression decision boundary"></canvas>
+          <div class="boundary-hint" id="boundaryHint">Model has not learned a boundary yet.</div>
+          <div class="canvas-tooltip" id="canvasTooltip"></div>
+        </div>
+      </section>
+
+      <section class="panel controls-panel">
+        <div class="panel-header">Controls</div>
+
+        <div class="control-block">
+          <span class="control-label">Dataset</span>
+          <div class="row">
+            <select id="datasetType" aria-label="Dataset pattern">
+              <option value="linear">Linearly Separable</option>
+              <option value="noisy">Slightly Noisy</option>
+            </select>
+            <button id="generateDataBtn" class="primary">Generate Random Data</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="clearDataBtn" class="ghost">Clear All</button>
+          </div>
+          <div class="counts">
+            <span><span class="dot" style="width:9px;height:9px;border-radius:50%;background:var(--blue);display:inline-block"></span>Class 0 points: <b id="class0Count">0</b></span>
+            <span><span class="dot" style="width:9px;height:9px;border-radius:50%;background:var(--orange);display:inline-block"></span>Class 1 points: <b id="class1Count">0</b></span>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <span class="control-label">Manual Point Controls</span>
+          <div class="row">
+            <button id="addClass0Btn" class="mode-btn active-class0">Add Class 0</button>
+            <button id="addClass1Btn" class="mode-btn">Add Class 1</button>
+            <button id="deletePointBtn" class="mode-btn">Delete Point</button>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <span class="control-label">Hyperparameters</span>
+          <div class="hp-field">
+            <div class="hp-top"><span class="name">Learning Rate</span><span class="val" id="learningRateVal">0.10</span></div>
+            <input type="range" id="learningRate" min="0.01" max="1.00" step="0.01" value="0.10">
+            <div class="hp-purpose">Controls how large each model update is.</div>
+          </div>
+          <div class="hp-field">
+            <div class="hp-top"><span class="name">Max Epochs</span><span class="val" id="maxEpochsVal">100</span></div>
+            <input type="range" id="maxEpochs" min="10" max="200" step="10" value="100">
+            <div class="hp-purpose">Controls the maximum number of complete passes through the training dataset.</div>
+          </div>
+          <div class="hp-field">
+            <div class="hp-top"><span class="name">Decision Threshold</span><span class="val" id="thresholdVal">0.50</span></div>
+            <input type="range" id="threshold" min="0.10" max="0.90" step="0.01" value="0.50">
+            <div class="hp-purpose">Converts predicted probability into Class 0 or Class 1.</div>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <span class="control-label">Training</span>
+          <div class="row">
+            <button id="stepBtn" class="primary">▶ Step</button>
+            <button id="playBtn" class="success">▶ Play Until Convergence</button>
+            <button id="resetBtn" class="ghost">↻ Reset</button>
+          </div>
+          <div class="status-box" id="statusBox">Ready. Click "Step" or "Play Until Convergence" to start training.</div>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- RIGHT COLUMN -->
+    <section class="right-column">
+
+      <section class="panel model-state-panel">
+        <div class="panel-header">Model State</div>
+
+        <div class="stat-row">
+          <div class="stat-tile"><div class="k">Epoch</div><div class="v" id="epochDisplay">0 / 100</div></div>
+          <div class="stat-tile"><div class="k">Loss (Binary Cross-Entropy)</div><div class="v" id="lossDisplayModel">0.6931</div></div>
+        </div>
+
+        <span class="control-label">Parameters (learned)</span>
+        <div class="param-list">
+          <div class="param-row"><span class="name">w₁ <small>weight for x₁</small></span><span class="value" id="w1Display">0.000</span></div>
+          <div class="param-row"><span class="name">w₂ <small>weight for x₂</small></span><span class="value" id="w2Display">0.000</span></div>
+          <div class="param-row"><span class="name">b <small>bias</small></span><span class="value" id="biasDisplay">0.000</span></div>
+          <div class="param-row"><span class="name">Learning Rate <small>hyperparameter, not learned</small></span><span class="value" id="lrDisplay">0.10</span></div>
+        </div>
+        <div class="term-tip">Weight: a value learned by the model that controls the influence of a feature. Bias: a learned value that shifts the decision boundary.</div>
+
+        <hr class="divider">
+
+        <span class="control-label">Current Prediction <span class="panel-sub">click a point on the canvas to inspect it</span></span>
+        <div class="current-pred-grid">
+          <div class="cp-tile"><div class="k">x₁</div><div class="v" id="x1Display">—</div></div>
+          <div class="cp-tile"><div class="k">x₂</div><div class="v" id="x2Display">—</div></div>
+          <div class="cp-tile"><div class="k">z = w₁x₁+w₂x₂+b</div><div class="v" id="zDisplay">—</div></div>
+          <div class="cp-tile"><div class="k">Probability σ(z)</div><div class="v" id="probabilityDisplay">—</div></div>
+        </div>
+        <div class="cp-tile" id="predictionTile"><div class="k">Prediction</div><div class="v" id="predictionDisplay">—</div></div>
+        <div class="cp-hint">Probability: the model's estimated probability that this point belongs to Class 1.</div>
+
+        <hr class="divider">
+
+        <span class="control-label">Logistic Function</span>
+        <div class="sigmoid-eq">σ(z) = 1 / (1 + e<sup>−z</sup>)</div>
+        <table class="sig-table" id="sigTable"></table>
+
+        <hr class="divider">
+
+        <span class="control-label">Classification Rule</span>
+        <div class="classify-rule">
+          <span class="r1" id="ruleClass1">p ≥ 0.50 → Class 1</span>
+          <span class="r0" id="ruleClass0">p &lt; 0.50 → Class 0</span>
+        </div>
+      </section>
+
+      <section class="panel loss-panel">
+        <div class="panel-header">Loss Graph <span class="panel-sub" id="lossHeaderVal">Loss (Binary Cross-Entropy): 0.6931</span></div>
+        <div class="canvas-wrap">
+          <canvas id="lossCanvas" aria-label="Line chart of training loss versus epoch"></canvas>
+          <div class="canvas-tooltip" id="lossTooltip"></div>
+        </div>
+      </section>
+
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <strong>Group Members:</strong> AungPyaeSone • LinnHeinHtet • LuChit • HsaungThetHtar • PhyoArkarWin • YuYuKhaing &nbsp;·&nbsp; <strong>CEi KMITL</strong>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* =========================
+   STATE
+   ========================= */
+const state = {
+  points: [],
+  weights: { w1: 0, w2: 0 },
+  bias: 0,
+  learningRate: 0.10,
+  maxEpochs: 100,
+  threshold: 0.50,
+  epoch: 0,
+  lossHistory: [],
+  selectedPoint: null,
+  pointMode: "class0",
+  isTraining: false,
+  playTimer: null,
+  consecutiveSmallDelta: 0
+};
+
+const EPSILON = 1e-15;
+const CONVERGENCE_DELTA = 0.00001;
+const CONVERGENCE_STREAK = 3;
+const PLAY_INTERVAL_MS = 110;
+
+/* =========================
+   LOGISTIC REGRESSION
+   ========================= */
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+
+function predict(point) {
+  const z = state.weights.w1 * point.x1 + state.weights.w2 * point.x2 + state.bias;
+  const p = sigmoid(z);
+  return { z, p };
+}
+
+function calculateLoss() {
+  if (state.points.length === 0) return null;
+  let total = 0;
+  for (const pt of state.points) {
+    const { p } = predict(pt);
+    const pc = Math.min(1 - EPSILON, Math.max(EPSILON, p));
+    total += -(pt.label * Math.log(pc) + (1 - pt.label) * Math.log(1 - pc));
+  }
+  return total / state.points.length;
+}
+
+function calculateGradients() {
+  const n = state.points.length;
+  let gw1 = 0, gw2 = 0, gb = 0;
+  for (const pt of state.points) {
+    const { p } = predict(pt);
+    const error = p - pt.label;
+    gw1 += error * pt.x1;
+    gw2 += error * pt.x2;
+    gb += error;
+  }
+  return { gw1: gw1 / n, gw2: gw2 / n, gb: gb / n };
+}
+
+function trainOneEpoch() {
+  const { gw1, gw2, gb } = calculateGradients();
+  state.weights.w1 -= state.learningRate * gw1;
+  state.weights.w2 -= state.learningRate * gw2;
+  state.bias -= state.learningRate * gb;
+  state.epoch += 1;
+  const newLoss = calculateLoss();
+  state.lossHistory.push(newLoss);
+  return newLoss;
+}
+
+/* Decision boundary: w1*x1 + w2*x2 + b = log(t/(1-t)) */
+function boundaryConstant() {
+  const t = state.threshold;
+  return Math.log(t / (1 - t));
+}
+
+function calculateDecisionBoundary() {
+  const { w1, w2 } = state.weights;
+  if (w1 === 0 && w2 === 0) return null;
+  const b = state.bias;
+  const c = boundaryConstant();
+  const pts = [];
+  const pushIf = (x1, x2) => { if (x1 >= -1e-9 && x1 <= 1 + 1e-9 && x2 >= -1e-9 && x2 <= 1 + 1e-9) pts.push({ x1: clamp01(x1), x2: clamp01(x2) }); };
+  if (w2 !== 0) { pushIf(0, (c - b) / w2); pushIf(1, (c - b - w1) / w2); }
+  if (w1 !== 0) { pushIf((c - b) / w1, 0); pushIf((c - b - w2) / w1, 1); }
+  // de-duplicate near-identical points (corners can be found twice)
+  const uniq = [];
+  for (const p of pts) {
+    if (!uniq.some(u => Math.hypot(u.x1 - p.x1, u.x2 - p.x2) < 1e-6)) uniq.push(p);
+  }
+  if (uniq.length < 2) return null;
+  return [uniq[0], uniq[1]];
+}
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+/* =========================
+   DATASET
+   ========================= */
+function rand(min, max) { return min + Math.random() * (max - min); }
+
+function genLinearlySeparable() {
+  const pts = [];
+  for (let i = 0; i < 20; i++) pts.push({ x1: rand(0.10, 0.45), x2: rand(0.10, 0.55), label: 0 });
+  for (let i = 0; i < 20; i++) pts.push({ x1: rand(0.55, 0.90), x2: rand(0.45, 0.90), label: 1 });
+  return pts;
+}
+function genNoisy() {
+  const pts = genLinearlySeparable();
+  for (let i = 0; i < 6; i++) {
+    pts.push({ x1: rand(0.35, 0.65), x2: rand(0.30, 0.70), label: Math.random() < 0.5 ? 0 : 1 });
+  }
+  return pts;
+}
+
+function generateDataset() {
+  const type = document.getElementById("datasetType").value;
+  state.points = type === "noisy" ? genNoisy() : genLinearlySeparable();
+  state.selectedPoint = null;
+  resetModelInternal();
+  redrawAll();
+  setStatus("New " + (type === "noisy" ? "slightly noisy" : "linearly separable") + " dataset generated (" + state.points.length + " points).", "success");
+}
+
+function clearDataset() {
+  if (state.isTraining) stopTraining();
+  state.points = [];
+  state.selectedPoint = null;
+  resetModelInternal();
+  redrawAll();
+  setStatus("All points cleared.", "success");
+}
+
+function addPoint(x1, x2, label) {
+  state.points.push({ x1: clamp01(x1), x2: clamp01(x2), label });
+  return state.points.length - 1;
+}
+
+function deleteNearestPoint(px, py, cssW, cssH) {
+  const idx = nearestPointIdx(px, py, cssW, cssH, 14);
+  if (idx < 0) return false;
+  state.points.splice(idx, 1);
+  if (state.selectedPoint === idx) state.selectedPoint = null;
+  else if (state.selectedPoint !== null && state.selectedPoint > idx) state.selectedPoint -= 1;
+  return true;
+}
+
+/* =========================
+   CANVAS DRAWING
+   ========================= */
+function fitCanvas(canvas) {
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width * ratio));
+  const h = Math.max(1, Math.round(rect.height * ratio));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return { ctx, cssW: rect.width, cssH: rect.height };
+}
+
+function dataToPixel(x1, x2, cssW, cssH) { return [x1 * cssW, (1 - x2) * cssH]; }
+function pixelToData(px, py, cssW, cssH) { return [px / cssW, 1 - py / cssH]; }
+
+function nearestPointIdx(px, py, cssW, cssH, maxDist) {
+  let best = -1, bestD = maxDist || 14;
+  state.points.forEach((pt, i) => {
+    const [x, y] = dataToPixel(pt.x1, pt.x2, cssW, cssH);
+    const d = Math.hypot(x - px, y - py);
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  return best;
+}
+
+function hexA(hex, a) {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16), g = parseInt(h.substring(2, 4), 16), b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawClassificationRegions(ctx, cssW, cssH) {
+  const { w1, w2 } = state.weights;
+  if (w1 === 0 && w2 === 0) return;
+  const b = state.bias, c = boundaryConstant();
+  const cols = 48, rows = Math.max(1, Math.round(48 * cssH / cssW));
+  const cw = cssW / cols, ch = cssH / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < cols; col++) {
+      const [dx1, dx2] = pixelToData((col + 0.5) * cw, (r + 0.5) * ch, cssW, cssH);
+      const z = w1 * dx1 + w2 * dx2 + b;
+      const isClass1 = z >= c;
+      ctx.fillStyle = isClass1 ? hexA(getComputedColor("--orange"), 0.14) : hexA(getComputedColor("--blue"), 0.14);
+      ctx.fillRect(col * cw, r * ch, cw + 1, ch + 1);
+    }
+  }
+}
+
+let _colorCache = {};
+function getComputedColor(varName) {
+  if (_colorCache[varName]) return _colorCache[varName];
+  const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  _colorCache[varName] = v;
+  return v;
+}
+
+function drawDecisionBoundary(ctx, cssW, cssH) {
+  const line = calculateDecisionBoundary();
+  const hint = document.getElementById("boundaryHint");
+  if (!line) {
+    hint.style.display = "block";
+    return;
+  }
+  hint.style.display = "none";
+  const [p0, p1] = line;
+  const [x0, y0] = dataToPixel(p0.x1, p0.x2, cssW, cssH);
+  const [x1, y1] = dataToPixel(p1.x1, p1.x2, cssW, cssH);
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = getComputedColor("--purple");
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawPoints(ctx, cssW, cssH) {
+  state.points.forEach((pt, i) => {
+    const [px, py] = dataToPixel(pt.x1, pt.x2, cssW, cssH);
+    const color = pt.label === 1 ? getComputedColor("--orange") : getComputedColor("--blue");
+    ctx.beginPath();
+    ctx.arc(px, py, i === state.selectedPoint ? 8 : 6, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = i === state.selectedPoint ? 2.5 : 1.3;
+    ctx.strokeStyle = i === state.selectedPoint ? "#ffffff" : "rgba(255,255,255,0.5)";
+    ctx.stroke();
+  });
+}
+
+function drawGridAndAxes(ctx, cssW, cssH) {
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 10; i++) {
+    const gx = (cssW / 10) * i, gy = (cssH / 10) * i;
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, cssH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(cssW, gy); ctx.stroke();
+  }
+  ctx.fillStyle = "#5f6785";
+  ctx.font = "11px Segoe UI";
+  ctx.fillText("x₁ →", 8, cssH - 8);
+  ctx.save(); ctx.translate(10, 14); ctx.fillText("↑ x₂", 0, 0); ctx.restore();
+}
+
+function drawCanvas() {
+  const canvas = document.getElementById("dataCanvas");
+  const { ctx, cssW, cssH } = fitCanvas(canvas);
+  ctx.clearRect(0, 0, cssW, cssH);
+  ctx.fillStyle = "#0a0e1c";
+  ctx.fillRect(0, 0, cssW, cssH);
+  drawClassificationRegions(ctx, cssW, cssH);
+  drawGridAndAxes(ctx, cssW, cssH);
+  drawDecisionBoundary(ctx, cssW, cssH);
+  drawPoints(ctx, cssW, cssH);
+}
+
+function drawLossGraph() {
+  const canvas = document.getElementById("lossCanvas");
+  const { ctx, cssW, cssH } = fitCanvas(canvas);
+  ctx.clearRect(0, 0, cssW, cssH);
+  ctx.fillStyle = "#0a0e1c";
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  const pad = { l: 38, r: 14, t: 14, b: 22 };
+  const plotW = cssW - pad.l - pad.r, plotH = cssH - pad.t - pad.b;
+
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const gy = pad.t + (plotH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, gy); ctx.lineTo(pad.l + plotW, gy); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + plotH); ctx.lineTo(pad.l + plotW, pad.t + plotH); ctx.stroke();
+
+  const hist = state.lossHistory;
+  if (hist.length === 0) {
+    ctx.fillStyle = "#5f6785";
+    ctx.font = "12px Segoe UI";
+    ctx.fillText("Click ▶ Step to start recording the loss curve.", pad.l, pad.t + plotH / 2);
+    canvas._chartMeta = null;
+    return;
+  }
+
+  const maxLoss = Math.max(...hist, 0.05);
+  const xAt = i => hist.length === 1 ? pad.l + plotW / 2 : pad.l + (i / (hist.length - 1)) * plotW;
+  const yAt = v => pad.t + plotH - (v / maxLoss) * plotH;
+
+  ctx.fillStyle = "#8b93b0";
+  ctx.font = "10px Segoe UI";
+  ctx.fillText(maxLoss.toFixed(2), 2, pad.t + 4);
+  ctx.fillText("0", 2, pad.t + plotH);
+  ctx.fillText("epoch " + hist.length, pad.l + plotW - 44, cssH - 6);
+  ctx.fillText("0", pad.l - 2, cssH - 6);
+
+  ctx.beginPath();
+  hist.forEach((v, i) => { const x = xAt(i), y = yAt(v); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });
+  ctx.strokeStyle = getComputedColor("--purple");
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+
+  ctx.fillStyle = getComputedColor("--purple");
+  hist.forEach((v, i) => {
+    const x = xAt(i), y = yAt(v);
+    ctx.beginPath(); ctx.arc(x, y, hist.length > 60 ? 1.6 : 3, 0, Math.PI * 2); ctx.fill();
+  });
+
+  canvas._chartMeta = { pad, plotW, plotH, maxLoss, n: hist.length };
+}
+
+/* =========================
+   MODEL STATE UI
+   ========================= */
+function fmt(n, d = 3) {
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  const v = Number(n.toFixed(d));
+  return (v === 0 ? 0 : v).toFixed(d);
+}
+
+function updateModelState() {
+  document.getElementById("epochDisplay").textContent = state.epoch + " / " + state.maxEpochs;
+  const liveLoss = calculateLoss();
+  document.getElementById("lossDisplayModel").textContent = fmt(liveLoss, 4);
+  document.getElementById("lossHeaderVal").textContent = "Loss (Binary Cross-Entropy): " + fmt(liveLoss, 4);
+  document.getElementById("w1Display").textContent = fmt(state.weights.w1);
+  document.getElementById("w2Display").textContent = fmt(state.weights.w2);
+  document.getElementById("biasDisplay").textContent = fmt(state.bias);
+  document.getElementById("lrDisplay").textContent = state.learningRate.toFixed(2);
+
+  const t = state.threshold.toFixed(2);
+  document.getElementById("ruleClass1").textContent = `p ≥ ${t} → Class 1`;
+  document.getElementById("ruleClass0").textContent = `p < ${t} → Class 0`;
+}
+
+function updateCurrentPrediction() {
+  let idx = state.selectedPoint;
+  if (idx === null && state.points.length > 0) idx = 0;
+  const tile = document.getElementById("predictionTile");
+  if (idx === null || !state.points[idx]) {
+    document.getElementById("x1Display").textContent = "—";
+    document.getElementById("x2Display").textContent = "—";
+    document.getElementById("zDisplay").textContent = "—";
+    document.getElementById("probabilityDisplay").textContent = "—";
+    document.getElementById("predictionDisplay").textContent = "—";
+    tile.className = "cp-tile";
+    return;
+  }
+  const pt = state.points[idx];
+  const { z, p } = predict(pt);
+  const predLabel = p >= state.threshold ? 1 : 0;
+  document.getElementById("x1Display").textContent = fmt(pt.x1, 2);
+  document.getElementById("x2Display").textContent = fmt(pt.x2, 2);
+  document.getElementById("zDisplay").textContent = fmt(z);
+  document.getElementById("probabilityDisplay").textContent = fmt(p);
+  document.getElementById("predictionDisplay").textContent = "Class " + predLabel + (predLabel === pt.label ? " ✓" : " (true: Class " + pt.label + ")");
+  tile.className = "cp-tile " + (predLabel === 1 ? "pred-1" : "pred-0");
+}
+
+function renderSigTable() {
+  const el = document.getElementById("sigTable");
+  const zs = [-4, -2, 0, 2, 4];
+  let html = "<tr><th>z</th><th>Probability</th></tr>";
+  zs.forEach(z => { html += `<tr><td>${z}</td><td>${sigmoid(z).toFixed(3)}</td></tr>`; });
+  el.innerHTML = html;
+}
+
+function updateCounts() {
+  document.getElementById("class0Count").textContent = state.points.filter(p => p.label === 0).length;
+  document.getElementById("class1Count").textContent = state.points.filter(p => p.label === 1).length;
+}
+
+function updateControls() {
+  document.getElementById("learningRateVal").textContent = state.learningRate.toFixed(2);
+  document.getElementById("maxEpochsVal").textContent = state.maxEpochs;
+  document.getElementById("thresholdVal").textContent = state.threshold.toFixed(2);
+  updateCounts();
+
+  const disableWhileTraining = state.isTraining;
+  ["generateDataBtn", "clearDataBtn", "addClass0Btn", "addClass1Btn", "deletePointBtn", "stepBtn", "resetBtn", "learningRate", "maxEpochs", "datasetType"].forEach(id => {
+    document.getElementById(id).disabled = disableWhileTraining;
+  });
+}
+
+function redrawAll() {
+  drawCanvas();
+  drawLossGraph();
+  updateModelState();
+  updateCurrentPrediction();
+  updateControls();
+}
+
+function setStatus(msg, kind) {
+  const el = document.getElementById("statusBox");
+  el.textContent = msg;
+  el.className = "status-box" + (kind ? " " + kind : "");
+}
+
+/* =========================
+   TRAINING CONTROLS
+   ========================= */
+function validateTrainable() {
+  if (state.points.length === 0) return "Please generate or add some data points first.";
+  const hasC0 = state.points.some(p => p.label === 0);
+  const hasC1 = state.points.some(p => p.label === 1);
+  if (!hasC0 || !hasC1) return "Please add points from both classes before training.";
+  if (state.epoch >= state.maxEpochs) return "Maximum epochs reached.";
+  return null;
+}
+
+function stepTraining() {
+  if (state.isTraining) return;
+  const err = validateTrainable();
+  if (err) { setStatus(err, "error"); return; }
+  const newLoss = trainOneEpoch();
+  redrawAll();
+  if (state.epoch >= state.maxEpochs) setStatus("Maximum epochs reached.", "error");
+  else setStatus(`Epoch ${state.epoch} complete — loss ${fmt(newLoss, 4)}.`, "success");
+}
+
+function startTraining() {
+  const err = validateTrainable();
+  if (err) { setStatus(err, "error"); return; }
+  state.isTraining = true;
+  state.consecutiveSmallDelta = 0;
+  const playBtn = document.getElementById("playBtn");
+  playBtn.textContent = "■ Stop Training";
+  playBtn.classList.add("training");
+  updateControls();
+
+  state.playTimer = setInterval(() => {
+    if (state.epoch >= state.maxEpochs) { stopTraining(); setStatus("Maximum epochs reached.", "error"); return; }
+    const prevLoss = state.lossHistory.length ? state.lossHistory[state.lossHistory.length - 1] : null;
+    const newLoss = trainOneEpoch();
+    redrawAll();
+    if (prevLoss !== null && Math.abs(prevLoss - newLoss) < CONVERGENCE_DELTA) state.consecutiveSmallDelta++;
+    else state.consecutiveSmallDelta = 0;
+
+    if (state.consecutiveSmallDelta >= CONVERGENCE_STREAK) {
+      stopTraining();
+      setStatus("Converged ✓ (epoch " + state.epoch + ", Δloss < " + CONVERGENCE_DELTA + ")", "success");
+      return;
+    }
+    if (state.epoch >= state.maxEpochs) { stopTraining(); setStatus("Maximum epochs reached.", "error"); return; }
+    setStatus(`Training… epoch ${state.epoch} / ${state.maxEpochs} — loss ${fmt(newLoss, 4)}`);
+  }, PLAY_INTERVAL_MS);
+}
+
+function stopTraining() {
+  state.isTraining = false;
+  if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; }
+  const playBtn = document.getElementById("playBtn");
+  playBtn.textContent = "▶ Play Until Convergence";
+  playBtn.classList.remove("training");
+  updateControls();
+}
+
+function resetModelInternal() {
+  state.weights.w1 = 0;
+  state.weights.w2 = 0;
+  state.bias = 0;
+  state.epoch = 0;
+  state.lossHistory = [];
+  state.consecutiveSmallDelta = 0;
+}
+
+function resetModel() {
+  if (state.isTraining) stopTraining();
+  resetModelInternal();
+  redrawAll();
+  setStatus("Model reset — weights and bias back to zero. Dataset kept; try a different learning rate.", "success");
+}
+
+/* =========================
+   EVENT LISTENERS
+   ========================= */
+function setPointMode(mode) {
+  state.pointMode = mode;
+  document.getElementById("addClass0Btn").classList.toggle("active-class0", mode === "class0");
+  document.getElementById("addClass1Btn").classList.toggle("active-class1", mode === "class1");
+  document.getElementById("deletePointBtn").classList.toggle("active-delete", mode === "delete");
+}
+
+function bindCanvasInteraction() {
+  const canvas = document.getElementById("dataCanvas");
+  const tooltip = document.getElementById("canvasTooltip");
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    const idx = nearestPointIdx(px, py, rect.width, rect.height, 14);
+    if (idx >= 0) {
+      const pt = state.points[idx];
+      const { z, p } = predict(pt);
+      tooltip.innerHTML = `Class ${pt.label}<br>x₁=${fmt(pt.x1,2)}, x₂=${fmt(pt.x2,2)}<br>p=${fmt(p)}`;
+      tooltip.style.display = "block";
+      tooltip.style.left = (px + 14) + "px";
+      tooltip.style.top = (py + 10) + "px";
+    } else {
+      tooltip.style.display = "none";
+    }
+  });
+  canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+
+  canvas.addEventListener("click", (e) => {
+    if (state.isTraining) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    const idx = nearestPointIdx(px, py, rect.width, rect.height, 14);
+
+    if (state.pointMode === "delete") {
+      const removed = deleteNearestPoint(px, py, rect.width, rect.height);
+      if (removed) { redrawAll(); setStatus("Point removed. " + state.points.length + " points remain.", "success"); }
+      else { setStatus("Click an existing point to delete it.", "error"); }
+      return;
+    }
+
+    if (idx >= 0) {
+      state.selectedPoint = idx;
+      redrawAll();
+      return;
+    }
+    const [dx1, dx2] = pixelToData(px, py, rect.width, rect.height);
+    const label = state.pointMode === "class1" ? 1 : 0;
+    const newIdx = addPoint(dx1, dx2, label);
+    state.selectedPoint = newIdx;
+    redrawAll();
+    setStatus("Added a Class " + label + " point. " + state.points.length + " points total.", "success");
+  });
+}
+
+function bindLossHover() {
+  const canvas = document.getElementById("lossCanvas");
+  const tooltip = document.getElementById("lossTooltip");
+  canvas.addEventListener("mousemove", (e) => {
+    const meta = canvas._chartMeta;
+    if (!meta) { tooltip.style.display = "none"; return; }
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const t = meta.n === 1 ? 0 : Math.round(((px - meta.pad.l) / meta.plotW) * (meta.n - 1));
+    if (t < 0 || t >= meta.n) { tooltip.style.display = "none"; return; }
+    tooltip.innerHTML = `epoch ${t + 1}<br>loss ${fmt(state.lossHistory[t], 4)}`;
+    tooltip.style.display = "block";
+    tooltip.style.left = (px + 12) + "px";
+    tooltip.style.top = "8px";
+  });
+  canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+}
+
+function bindControls() {
+  document.getElementById("generateDataBtn").onclick = generateDataset;
+  document.getElementById("clearDataBtn").onclick = clearDataset;
+
+  document.getElementById("addClass0Btn").onclick = () => setPointMode("class0");
+  document.getElementById("addClass1Btn").onclick = () => setPointMode("class1");
+  document.getElementById("deletePointBtn").onclick = () => setPointMode("delete");
+
+  const lr = document.getElementById("learningRate");
+  lr.addEventListener("input", () => { state.learningRate = parseFloat(lr.value); document.getElementById("learningRateVal").textContent = state.learningRate.toFixed(2); document.getElementById("lrDisplay").textContent = state.learningRate.toFixed(2); });
+
+  const me = document.getElementById("maxEpochs");
+  me.addEventListener("input", () => { state.maxEpochs = parseInt(me.value, 10); document.getElementById("maxEpochsVal").textContent = state.maxEpochs; updateModelState(); });
+
+  const th = document.getElementById("threshold");
+  th.addEventListener("input", () => {
+    state.threshold = parseFloat(th.value);
+    document.getElementById("thresholdVal").textContent = state.threshold.toFixed(2);
+    redrawAll();
+  });
+
+  document.getElementById("stepBtn").onclick = stepTraining;
+  document.getElementById("playBtn").onclick = () => { state.isTraining ? stopTraining() : startTraining(); };
+  document.getElementById("resetBtn").onclick = resetModel;
+
+  window.addEventListener("resize", () => { drawCanvas(); drawLossGraph(); });
+}
+
+/* =========================
+   INITIALIZATION
+   ========================= */
+function preventButtonFocusScroll() {
+  // Clicking a button gives it keyboard focus, and the browser scrolls it into
+  // view inside its nearest scrollable ancestor (.left-column / .right-column).
+  // Since the controls panel can be taller than the viewport, that scroll can
+  // carry the Data Canvas out of view. Buttons don't need focus to fire their
+  // click handler, so suppress it at mousedown time.
+  document.addEventListener("mousedown", (e) => {
+    if (e.target.closest("button")) e.preventDefault();
+  });
+}
+
+function init() {
+  preventButtonFocusScroll();
+  bindControls();
+  bindCanvasInteraction();
+  bindLossHover();
+  renderSigTable();
+  state.points = genLinearlySeparable();
+  resetModelInternal();
+  redrawAll();
+  setStatus("Ready. Click ▶ Step or ▶ Play Until Convergence to start training.");
+}
+init();
+</script>
+</body>
+</html>
