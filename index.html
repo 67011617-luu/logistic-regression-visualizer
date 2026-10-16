@@ -174,10 +174,36 @@
 
   /* Responsive */
   @media (max-width: 900px) {
-    .app-layout { grid-template-columns: 1fr; }
-    .left-column, .right-column { overflow-y: visible; }
+    /* Let the page grow and scroll naturally instead of fitting the viewport */
+    html, body { height: auto; min-height: 100%; }
+    .page { flex: 0 0 auto; }
+    .app-layout { grid-template-columns: 1fr; flex: 0 0 auto; min-height: 0; }
+    .left-column, .right-column { overflow-y: visible; padding-right: 0; }
     .how-it-works { width: 100%; }
     .stat-row, .current-pred-grid { grid-template-columns: repeat(2, 1fr); }
+    /* Allow page scrolling when a swipe starts on the canvas; taps still add points */
+    #dataCanvas { touch-action: manipulation; }
+  }
+
+  /* Phones */
+  @media (max-width: 600px) {
+    .page { padding: 10px 10px; gap: 10px; }
+    .header-card { padding: 14px 14px; gap: 14px; border-radius: 14px; }
+    .header-text p.desc { font-size: 0.86rem; }
+    .panel { padding: 12px 12px 14px; }
+    .app-layout { gap: 10px; }
+    .left-column, .right-column { gap: 10px; }
+    /* Keep the data canvas roughly square so x₁ and x₂ use the same scale */
+    #dataCanvas { height: calc(100vw - 46px); max-height: 400px; }
+    #lossCanvas { height: 170px; }
+    .boundary-hint { white-space: nowrap; font-size: 0.7rem; }
+    /* 16px prevents iOS from zooming in when the select is tapped */
+    select { font-size: 16px; width: 100%; }
+    .row button { flex: 1 1 auto; padding: 11px 10px; }
+    .counts { flex-wrap: wrap; gap: 8px 18px; }
+    .stat-tile .v { font-size: 1.05rem; }
+    .cp-tile .v { font-size: 0.92rem; word-break: break-word; }
+    footer { padding: 10px 12px; line-height: 1.6; }
   }
 </style>
 </head>
@@ -846,6 +872,14 @@ function setPointMode(mode) {
   document.getElementById("deletePointBtn").classList.toggle("active-delete", mode === "delete");
 }
 
+/* Keep a tooltip inside its canvas so it doesn't overflow narrow (mobile) screens */
+function placeTooltip(tooltip, left, top, maxW) {
+  const w = tooltip.offsetWidth;
+  if (left + w > maxW - 4) left = Math.max(4, left - w - 26);
+  tooltip.style.left = left + "px";
+  tooltip.style.top = top + "px";
+}
+
 function bindCanvasInteraction() {
   const canvas = document.getElementById("dataCanvas");
   const tooltip = document.getElementById("canvasTooltip");
@@ -859,8 +893,7 @@ function bindCanvasInteraction() {
       const { z, p } = predict(pt);
       tooltip.innerHTML = `Class ${pt.label}<br>x₁=${fmt(pt.x1,2)}, x₂=${fmt(pt.x2,2)}<br>p=${fmt(p)}`;
       tooltip.style.display = "block";
-      tooltip.style.left = (px + 14) + "px";
-      tooltip.style.top = (py + 10) + "px";
+      placeTooltip(tooltip, px + 14, py + 10, rect.width);
     } else {
       tooltip.style.display = "none";
     }
@@ -906,8 +939,7 @@ function bindLossHover() {
     if (t < 0 || t >= meta.n) { tooltip.style.display = "none"; return; }
     tooltip.innerHTML = `epoch ${t + 1}<br>loss ${fmt(state.lossHistory[t], 4)}`;
     tooltip.style.display = "block";
-    tooltip.style.left = (px + 12) + "px";
-    tooltip.style.top = "8px";
+    placeTooltip(tooltip, px + 12, 8, rect.width);
   });
   canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
 }
