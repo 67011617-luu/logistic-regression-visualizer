@@ -8,7 +8,7 @@ Logistic Regression is a supervised machine learning algorithm used for binary c
 
 This visualizer makes the learning process easier to understand by connecting the mathematical calculations with interactive visualizations. Users can create datasets, adjust hyperparameters, train the model step by step, inspect individual predictions, and observe how the model changes during training.
 
-The application uses two input features, (x_1) and (x_2), to classify data points into Class 0 or Class 1.
+The application uses two input features, $x_1$ and $x_2$, to classify data points into Class 0 or Class 1.
 
 Features
 
@@ -19,7 +19,7 @@ Features
 * Step-by-Step Training — Perform one training update at a time to observe changes in the model.
 * Automatic Training — Train continuously until the convergence condition is met or the maximum number of epochs is reached.
 * Adjustable Hyperparameters — Change the learning rate, maximum epochs, and decision threshold.
-* Live Model Parameters — Monitor the learned weights (w_1), (w_2), and bias (b) as training progresses.
+* Live Model Parameters — Monitor the learned weights $w_1$, $w_2$, and bias $b$ as training progresses.
 * Current Prediction Inspector — Select an individual data point to examine its input features, linear score, sigmoid probability, predicted class, and true class.
 * Sigmoid Function Reference — Explore how the sigmoid function converts linear scores into probabilities.
 * Decision Boundary Visualization — Observe how the classification boundary and predicted regions change as the model learns.
@@ -32,7 +32,7 @@ Application Layout
 
 The Data Canvas displays the dataset and the model’s current classification behavior.
 
-Each data point represents one sample with two input features, (x_1) and (x_2). Its class determines its label as Class 0 or Class 1.
+Each data point represents one sample with two input features, $x_1$ and $x_2$. Its class determines its label as Class 0 or Class 1.
 
 The canvas supports two dataset generators:
 
@@ -68,11 +68,11 @@ It includes:
 
 * Current training epoch.
 * Current binary cross-entropy loss.
-* Learned weights (w_1) and (w_2).
-* Learned bias (b).
+* Learned weights $w_1$ and $w_2$.
+* Learned bias $b$.
 * The selected point’s input features.
-* Linear score (z).
-* Sigmoid probability (\sigma(z)).
+* Linear score $z$.
+* Sigmoid probability $\sigma(z)$.
 * Predicted class and true class.
 * The classification rule and sigmoid reference table.
 
@@ -94,16 +94,16 @@ How Logistic Regression Works
 
 The model first calculates a linear score using the two input features, their corresponding weights, and the bias:
 
-[
+$$
 z = w_1x_1 + w_2x_2 + b
-]
+$$
 
 Where:
 
-* (x_1, x_2) are the input features.
-* (w_1, w_2) are the learned feature weights.
-* (b) is the bias term.
-* (z) is the linear score.
+* $x_1, x_2$ are the input features.
+* $w_1, w_2$ are the learned feature weights.
+* $b$ is the bias term.
+* $z$ is the linear score.
 
 The weights determine how the input features contribute to the score, while the bias shifts the score.
 
@@ -111,34 +111,34 @@ The weights determine how the input features contribute to the score, while the 
 
 The linear score is converted into a probability using the sigmoid function:
 
-[
+$$
 \sigma(z) = \frac{1}{1 + e^{-z}}
-]
+$$
 
 The output is always between 0 and 1 and represents the model’s estimated probability of Class 1.
 
-* When (z = 0), the probability is 0.5.
-* When (z) is positive, the probability is greater than 0.5.
-* When (z) is negative, the probability is less than 0.5.
+* When $z = 0$, the probability is 0.5.
+* When $z$ is positive, the probability is greater than 0.5.
+* When $z$ is negative, the probability is less than 0.5.
 
 The sigmoid reference table in the application helps users understand the relationship between the linear score and the resulting probability.
 
 3. Binary Classification
 
-The predicted probability is compared with the selected decision threshold (t).
+The predicted probability is compared with the selected decision threshold $t$.
 
-[
+$$
 \hat{y} =
 \begin{cases}
-1 & \text{if } \sigma(z) \geq t \
+1 & \text{if } \sigma(z) \geq t \\
 0 & \text{if } \sigma(z) < t
 \end{cases}
-]
+$$
 
 Where:
 
-* (\hat{y}) is the predicted class.
-* (t) is the decision threshold.
+* $\hat{y}$ is the predicted class.
+* $t$ is the decision threshold.
 
 With a threshold of 0.5, probabilities greater than or equal to 0.5 are classified as Class 1, while lower probabilities are classified as Class 0.
 
@@ -148,20 +148,20 @@ Changing the threshold changes the classification rule without directly changing
 
 The model’s predictions are evaluated using binary cross-entropy loss:
 
-[
+$$
 L = -\frac{1}{N}\sum_{i=1}^{N}
 \left[
 y_i\log(p_i) +
 (1-y_i)\log(1-p_i)
 \right]
-]
+$$
 
 Where:
 
-* (N) is the number of data points.
-* (y_i) is the true label of data point (i).
-* (p_i) is the predicted probability of Class 1 for data point (i).
-* (L) is the average loss across the dataset.
+* $N$ is the number of data points.
+* $y_i$ is the true label of data point $i$.
+* $p_i$ is the predicted probability of Class 1 for data point $i$.
+* $L$ is the average loss across the dataset.
 
 The loss penalizes incorrect probability estimates. Confident predictions that disagree with the true labels receive a larger penalty.
 
@@ -173,37 +173,37 @@ The model learns by using batch gradient descent. During each training update, i
 
 For binary Logistic Regression, the gradients are:
 
-[
+$$
 \frac{\partial L}{\partial w_1}
 = \frac{1}{N}\sum_{i=1}^{N}(p_i-y_i)x_{i1}
-]
+$$
 
-[
+$$
 \frac{\partial L}{\partial w_2}
 = \frac{1}{N}\sum_{i=1}^{N}(p_i-y_i)x_{i2}
-]
+$$
 
-[
+$$
 \frac{\partial L}{\partial b}
 = \frac{1}{N}\sum_{i=1}^{N}(p_i-y_i)
-]
+$$
 
-The parameters are then updated using the learning rate (\alpha):
+The parameters are then updated using the learning rate $\alpha$:
 
-[
+$$
 w_1 \leftarrow w_1 -
 \alpha\frac{\partial L}{\partial w_1}
-]
+$$
 
-[
+$$
 w_2 \leftarrow w_2 -
 \alpha\frac{\partial L}{\partial w_2}
-]
+$$
 
-[
+$$
 b \leftarrow b -
 \alpha\frac{\partial L}{\partial b}
-]
+$$
 
 These updates move the parameters in the direction that reduces the loss locally.
 
@@ -213,18 +213,18 @@ After each training update, the visualizer refreshes the model parameters, predi
 
 The decision boundary represents the locations where the model’s predicted probability equals the selected decision threshold.
 
-For a threshold of 0.5, the sigmoid probability equals 0.5 when (z = 0). Therefore, the decision boundary is:
+For a threshold of 0.5, the sigmoid probability equals 0.5 when $z = 0$. Therefore, the decision boundary is:
 
-[
+$$
 w_1x_1 + w_2x_2 + b = 0
-]
+$$
 
-For other thresholds (t), the boundary is defined by:
+For other thresholds $t$, the boundary is defined by:
 
-[
+$$
 w_1x_1 + w_2x_2 + b
 = \log\left(\frac{t}{1-t}\right)
-]
+$$
 
 This means that changing the decision threshold can shift the boundary even when the learned model parameters remain unchanged.
 
@@ -239,7 +239,7 @@ Step-by-step training performs one batch update each time the Step button is pre
 Automatic training repeatedly performs updates until one of the following conditions occurs:
 
 * The maximum number of epochs is reached.
-* The absolute loss improvement remains below (0.00001) for three consecutive epochs.
+* The absolute loss improvement remains below $0.00001$ for three consecutive epochs.
 * The user stops training manually.
 
 The convergence condition helps prevent unnecessary updates when the loss has stopped changing significantly. It is a practical stopping rule rather than a guarantee that the model has reached the global minimum.

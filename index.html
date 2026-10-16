@@ -43,25 +43,39 @@
   header { flex: 0 0 auto; }
   .header-card {
     background: linear-gradient(180deg, var(--panel-strong), var(--bg-alt));
-    border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px;
+    border: 1px solid var(--border); border-radius: 14px; padding: 10px 16px;
     box-shadow: 0 10px 18px var(--shadow);
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   }
-  .header-text h1 { margin: 0; font-size: clamp(1.35rem, 2.1vw, 1.95rem); font-weight: 700; letter-spacing: 0.01em; }
+  .header-text h1 { margin: 0; font-size: clamp(1.15rem, 1.6vw, 1.45rem); font-weight: 700; letter-spacing: 0.01em; }
   .header-text h1 .accent { background: linear-gradient(90deg, var(--purple), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .header-text p.desc { margin: 8px 0 0; font-size: 0.92rem; color: var(--muted); max-width: 620px; line-height: 1.5; }
+  .header-text p.desc { margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); max-width: 640px; line-height: 1.4; }
 
   .how-it-works {
-    flex: 0 0 auto; width: 300px; max-width: 100%;
-    background: var(--panel-soft); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px 16px;
+    flex: 0 0 auto; width: auto; max-width: 100%;
+    background: var(--panel-soft); border: 1px solid var(--border-soft); border-radius: 10px; padding: 8px 12px;
   }
-  .how-it-works h3 { margin: 0 0 8px; font-size: 0.9rem; color: var(--purple); }
-  .how-it-works ol { margin: 0; padding-left: 18px; font-size: 0.78rem; color: var(--muted); line-height: 1.65; }
+  .how-it-works h3 { margin: 0 0 4px; font-size: 0.8rem; color: var(--purple); }
+  .how-it-works ol { margin: 0; padding-left: 16px; font-size: 0.72rem; color: var(--muted); line-height: 1.45; columns: 2; column-gap: 18px; }
+  .how-it-works li { white-space: nowrap; }
   .how-it-works li b { color: var(--text); }
 
   /* Main app layout */
   .app-layout { flex: 1 1 auto; min-height: 420px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; }
   .left-column, .right-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; }
+
+  /* Right column: Loss Graph stays visible at the bottom; only Model State scrolls */
+  .right-column { overflow-y: hidden; padding-right: 0; }
+  .right-column .model-state-panel {
+    flex: 1 1 auto; min-height: 0; overflow-y: scroll;
+    /* "auto" lets the ::-webkit-scrollbar styles below apply, which keeps the bar always visible (no macOS auto-hide) */
+    scrollbar-width: auto; scrollbar-color: auto;
+  }
+  .right-column .model-state-panel::-webkit-scrollbar { width: 10px; }
+  .right-column .model-state-panel::-webkit-scrollbar-track { background: var(--panel-strong); border-radius: 8px; }
+  .right-column .model-state-panel::-webkit-scrollbar-thumb { background: #4a5680; border-radius: 8px; border: 2px solid var(--panel-strong); }
+  .right-column .model-state-panel::-webkit-scrollbar-thumb:hover { background: var(--purple-strong); }
+  .right-column .loss-panel { flex: 0 0 auto; }
 
   /* Panels */
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 18px var(--shadow); padding: 14px 16px 16px; flex: 0 0 auto; }
@@ -174,36 +188,12 @@
 
   /* Responsive */
   @media (max-width: 900px) {
-    /* Let the page grow and scroll naturally instead of fitting the viewport */
-    html, body { height: auto; min-height: 100%; }
-    .page { flex: 0 0 auto; }
-    .app-layout { grid-template-columns: 1fr; flex: 0 0 auto; min-height: 0; }
-    .left-column, .right-column { overflow-y: visible; padding-right: 0; }
+    .app-layout { grid-template-columns: 1fr; }
+    .left-column, .right-column, .right-column .model-state-panel { overflow-y: visible; }
     .how-it-works { width: 100%; }
+    .how-it-works ol { columns: 1; }
+    .how-it-works li { white-space: normal; }
     .stat-row, .current-pred-grid { grid-template-columns: repeat(2, 1fr); }
-    /* Allow page scrolling when a swipe starts on the canvas; taps still add points */
-    #dataCanvas { touch-action: manipulation; }
-  }
-
-  /* Phones */
-  @media (max-width: 600px) {
-    .page { padding: 10px 10px; gap: 10px; }
-    .header-card { padding: 14px 14px; gap: 14px; border-radius: 14px; }
-    .header-text p.desc { font-size: 0.86rem; }
-    .panel { padding: 12px 12px 14px; }
-    .app-layout { gap: 10px; }
-    .left-column, .right-column { gap: 10px; }
-    /* Keep the data canvas roughly square so x₁ and x₂ use the same scale */
-    #dataCanvas { height: calc(100vw - 46px); max-height: 400px; }
-    #lossCanvas { height: 170px; }
-    .boundary-hint { white-space: nowrap; font-size: 0.7rem; }
-    /* 16px prevents iOS from zooming in when the select is tapped */
-    select { font-size: 16px; width: 100%; }
-    .row button { flex: 1 1 auto; padding: 11px 10px; }
-    .counts { flex-wrap: wrap; gap: 8px 18px; }
-    .stat-tile .v { font-size: 1.05rem; }
-    .cp-tile .v { font-size: 0.92rem; word-break: break-word; }
-    footer { padding: 10px 12px; line-height: 1.6; }
   }
 </style>
 </head>
@@ -239,7 +229,7 @@
     <section class="left-column">
 
       <section class="panel data-canvas-panel">
-        <div class="panel-header">Data Canvas <span class="panel-sub">click to add/delete a point depending on the selected mode below</span></div>
+        <div class="panel-header">Data Canvas <span class="panel-sub">click to add/delete a point depending on the selected mode below · <b>Shift + click</b> a point to delete it</span></div>
         <div class="legend">
           <span><span class="dot" style="background:var(--blue)"></span>● Class 0</span>
           <span><span class="dot" style="background:var(--orange)"></span>● Class 1</span>
@@ -304,11 +294,12 @@
         <div class="control-block">
           <span class="control-label">Training</span>
           <div class="row">
-            <button id="stepBtn" class="primary">▶ Step</button>
+            <button id="stepBackBtn" class="primary">❮ Step Backward</button>
+            <button id="stepBtn" class="primary">Step Forward ❯</button>
             <button id="playBtn" class="success">▶ Play Until Convergence</button>
             <button id="resetBtn" class="ghost">↻ Reset</button>
           </div>
-          <div class="status-box" id="statusBox">Ready. Click "Step" or "Play Until Convergence" to start training.</div>
+          <div class="status-box" id="statusBox">Ready. Click "Step Forward" or "Play Until Convergence" to start training.</div>
         </div>
       </section>
 
@@ -393,6 +384,7 @@ const state = {
   threshold: 0.50,
   epoch: 0,
   lossHistory: [],
+  paramHistory: [],   // weights & bias before each epoch, used by Step Backward
   selectedPoint: null,
   pointMode: "class0",
   isTraining: false,
@@ -441,6 +433,7 @@ function calculateGradients() {
 }
 
 function trainOneEpoch() {
+  state.paramHistory.push({ w1: state.weights.w1, w2: state.weights.w2, b: state.bias });
   const { gw1, gw2, gb } = calculateGradients();
   state.weights.w1 -= state.learningRate * gw1;
   state.weights.w2 -= state.learningRate * gw2;
@@ -669,7 +662,7 @@ function drawLossGraph() {
   if (hist.length === 0) {
     ctx.fillStyle = "#5f6785";
     ctx.font = "12px Segoe UI";
-    ctx.fillText("Click ▶ Step to start recording the loss curve.", pad.l, pad.t + plotH / 2);
+    ctx.fillText("Click Step Forward ❯ to start recording the loss curve.", pad.l, pad.t + plotH / 2);
     canvas._chartMeta = null;
     return;
   }
@@ -771,6 +764,7 @@ function updateControls() {
   ["generateDataBtn", "clearDataBtn", "addClass0Btn", "addClass1Btn", "deletePointBtn", "stepBtn", "resetBtn", "learningRate", "maxEpochs", "datasetType"].forEach(id => {
     document.getElementById(id).disabled = disableWhileTraining;
   });
+  document.getElementById("stepBackBtn").disabled = disableWhileTraining || state.epoch === 0;
 }
 
 function redrawAll() {
@@ -807,6 +801,19 @@ function stepTraining() {
   redrawAll();
   if (state.epoch >= state.maxEpochs) setStatus("Maximum epochs reached.", "error");
   else setStatus(`Epoch ${state.epoch} complete — loss ${fmt(newLoss, 4)}.`, "success");
+}
+
+function stepBackward() {
+  if (state.isTraining) return;
+  if (state.epoch === 0 || state.paramHistory.length === 0) { setStatus("Already at epoch 0 — nothing to undo.", "error"); return; }
+  const prev = state.paramHistory.pop();
+  state.weights.w1 = prev.w1;
+  state.weights.w2 = prev.w2;
+  state.bias = prev.b;
+  state.epoch -= 1;
+  state.lossHistory.pop();
+  redrawAll();
+  setStatus(`Stepped back to epoch ${state.epoch}` + (state.epoch > 0 ? ` — loss ${fmt(state.lossHistory[state.lossHistory.length - 1], 4)}.` : " (initial weights)."), "success");
 }
 
 function startTraining() {
@@ -852,6 +859,7 @@ function resetModelInternal() {
   state.bias = 0;
   state.epoch = 0;
   state.lossHistory = [];
+  state.paramHistory = [];
   state.consecutiveSmallDelta = 0;
 }
 
@@ -872,14 +880,6 @@ function setPointMode(mode) {
   document.getElementById("deletePointBtn").classList.toggle("active-delete", mode === "delete");
 }
 
-/* Keep a tooltip inside its canvas so it doesn't overflow narrow (mobile) screens */
-function placeTooltip(tooltip, left, top, maxW) {
-  const w = tooltip.offsetWidth;
-  if (left + w > maxW - 4) left = Math.max(4, left - w - 26);
-  tooltip.style.left = left + "px";
-  tooltip.style.top = top + "px";
-}
-
 function bindCanvasInteraction() {
   const canvas = document.getElementById("dataCanvas");
   const tooltip = document.getElementById("canvasTooltip");
@@ -893,7 +893,8 @@ function bindCanvasInteraction() {
       const { z, p } = predict(pt);
       tooltip.innerHTML = `Class ${pt.label}<br>x₁=${fmt(pt.x1,2)}, x₂=${fmt(pt.x2,2)}<br>p=${fmt(p)}`;
       tooltip.style.display = "block";
-      placeTooltip(tooltip, px + 14, py + 10, rect.width);
+      tooltip.style.left = (px + 14) + "px";
+      tooltip.style.top = (py + 10) + "px";
     } else {
       tooltip.style.display = "none";
     }
@@ -906,7 +907,7 @@ function bindCanvasInteraction() {
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
     const idx = nearestPointIdx(px, py, rect.width, rect.height, 14);
 
-    if (state.pointMode === "delete") {
+    if (e.shiftKey || state.pointMode === "delete") {
       const removed = deleteNearestPoint(px, py, rect.width, rect.height);
       if (removed) { redrawAll(); setStatus("Point removed. " + state.points.length + " points remain.", "success"); }
       else { setStatus("Click an existing point to delete it.", "error"); }
@@ -939,7 +940,8 @@ function bindLossHover() {
     if (t < 0 || t >= meta.n) { tooltip.style.display = "none"; return; }
     tooltip.innerHTML = `epoch ${t + 1}<br>loss ${fmt(state.lossHistory[t], 4)}`;
     tooltip.style.display = "block";
-    placeTooltip(tooltip, px + 12, 8, rect.width);
+    tooltip.style.left = (px + 12) + "px";
+    tooltip.style.top = "8px";
   });
   canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
 }
@@ -965,6 +967,7 @@ function bindControls() {
     redrawAll();
   });
 
+  document.getElementById("stepBackBtn").onclick = stepBackward;
   document.getElementById("stepBtn").onclick = stepTraining;
   document.getElementById("playBtn").onclick = () => { state.isTraining ? stopTraining() : startTraining(); };
   document.getElementById("resetBtn").onclick = resetModel;
@@ -995,7 +998,7 @@ function init() {
   state.points = genLinearlySeparable();
   resetModelInternal();
   redrawAll();
-  setStatus("Ready. Click ▶ Step or ▶ Play Until Convergence to start training.");
+  setStatus("Ready. Click Step Forward ❯ or ▶ Play Until Convergence to start training.");
 }
 init();
 </script>
